@@ -1,6 +1,6 @@
-
+// We will be using Solidity version 0.5.4
 pragma solidity 0.5.4;
-
+// Importing OpenZeppelin's SafeMath Implementation
 import 'https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/math/SafeMath.sol';
 
 
@@ -17,7 +17,8 @@ contract Crowdfunding {
         string projectTitle,
         string projectDesc,
         uint256 deadline,
-        uint256 goalAmount
+        uint256 goalAmount,
+        bool reward
     );
 
     /** @dev Function to start a new project.
@@ -28,12 +29,13 @@ contract Crowdfunding {
       */
     function startProject(
         string calldata title,
-        string calldata description,
+        string calldata  description,
         uint durationInDays,
-        uint amountToRaise
+        uint amountToRaise,
+        bool reward
     ) external {
         uint raiseUntil = now.add(durationInDays.mul(1 days));
-        Project newProject = new Project(msg.sender, title, description, raiseUntil, amountToRaise);
+        Project newProject = new Project(msg.sender, title, description, raiseUntil, amountToRaise,reward);
         projects.push(newProject);
         emit ProjectStarted(
             address(newProject),
@@ -41,7 +43,8 @@ contract Crowdfunding {
             title,
             description,
             raiseUntil,
-            amountToRaise
+            amountToRaise,
+            reward
         );
     }                                                                                                                                   
 
@@ -69,11 +72,16 @@ contract Project {
     uint public amountGoal; // required to reach at least this much, else everyone gets refund
     uint public completeAt;
     uint256 public currentBalance;
+    uint256 public donateBalance;
+    uint public percent;
     uint public raiseBy;
     string public title;
     string public description;
+    bool public rewardbased;
+    bool public rewardstatus;
     State public state = State.Fundraising; // initialize on create
     mapping (address => uint) public contributions;
+    mapping (address => uint) public contributions_percentage;
 
     // Event that will be emitted whenever funding will be received
     event FundingReceived(address contributor, uint amount, uint currentTotal);
@@ -98,7 +106,8 @@ contract Project {
         string memory projectTitle,
         string memory projectDesc,
         uint fundRaisingDeadline,
-        uint goalAmount
+        uint goalAmount,
+        bool reward
     ) public {
         creator = projectStarter;
         title = projectTitle;
@@ -106,16 +115,32 @@ contract Project {
         amountGoal = goalAmount;
         raiseBy = fundRaisingDeadline;
         currentBalance = 0;
+        rewardbased=reward;
+        rewardstatus=false;
     }
 
-    /** @dev Function to fund a certain project.
+    /** @dev Function to fund a certain project. 
       */
     function contribute() external inState(State.Fundraising) payable {
         require(msg.sender != creator);
         contributions[msg.sender] = contributions[msg.sender].add(msg.value);
+        
+        // contribution percentages for reward based project
+        if(rewardbased) {
+        uint _numerator  = msg.value * 10 ** (4);
+        percent =  ((_numerator / amountGoal)+5) / 10;
+        contributions_percentage[msg.sender]=contributions_percentage[msg.sender].add(percent);
+        }
+        
         currentBalance = currentBalance.add(msg.value);
         emit FundingReceived(msg.sender, msg.value, currentBalance);
         checkIfFundingCompleteOrExpired();
+    }
+    
+    function donate() external inState(State.Successful) payable {
+        require(msg.sender == creator);
+        donateBalance = donateBalance.add(msg.value);
+        rewardstatus=true;
     }
 
     /** @dev Function to change the project state depending on conditions.
@@ -124,8 +149,9 @@ contract Project {
         if (currentBalance >= amountGoal) {
             state = State.Successful;
             payOut();
-        } else if (now > raiseBy)  {
+        } else if (now > raiseBy )  {
             state = State.Expired;
+            if(!rewardbased) payOut2();
         }
         completeAt = now;
     }
@@ -146,20 +172,59 @@ contract Project {
 
         return false;
     }
+    
+    function payOut2() internal inState(State.Expired) returns (bool) {
+        uint256 totalRaised = currentBalance;
+        currentBalance = 0;
 
+        if (creator.send(totalRaised)) {
+            emit CreatorPaid(creator);
+            return true;
+        } else {
+            currentBalance = totalRaised;
+            state = State.Expired;
+        }
+
+        return false;
+    }
+    
     /** @dev Function to retrieve donated amount when a project expires.
       */
     function getRefund() public inState(State.Expired) returns (bool) {
         require(contributions[msg.sender] > 0);
-
+        
         uint amountToRefund = contributions[msg.sender];
         contributions[msg.sender] = 0;
+        
 
         if (!msg.sender.send(amountToRefund)) {
             contributions[msg.sender] = amountToRefund;
             return false;
         } else {
+            contributions_percentage[msg.sender]=0;
             currentBalance = currentBalance.sub(amountToRefund);
+        }
+
+        return true;
+    }
+    
+     function getReward() public inState(State.Successful) returns (bool) {
+        require(contributions_percentage[msg.sender] > 0);
+        
+        uint amountToRefund = contributions[msg.sender];
+        uint amountPercent=contributions_percentage[msg.sender];
+        uint money = (contributions_percentage[msg.sender]*donateBalance) /100;
+
+        uint amountToReward = money/10;
+        contributions[msg.sender] = 0;
+        contributions_percentage[msg.sender]=0;
+
+        if (!msg.sender.send(amountToReward)) {
+            contributions[msg.sender] = amountToRefund;
+            contributions_percentage[msg.sender] = amountPercent;
+            return false;
+        } else {
+            donateBalance = donateBalance.sub(amountToReward);
         }
 
         return true;
@@ -176,7 +241,9 @@ contract Project {
         uint256 deadline,
         State currentState,
         uint256 currentAmount,
-        uint256 goalAmount
+        uint256 goalAmount,
+        bool reward,
+        bool rewardstate
     ) {
         projectStarter = creator;
         projectTitle = title;
@@ -185,5 +252,7 @@ contract Project {
         currentState = state;
         currentAmount = currentBalance;
         goalAmount = amountGoal;
+        reward=rewardbased;
+        rewardstate=rewardstatus;
     }
 }
