@@ -1,0 +1,20 @@
+body {
+    font-size: 17px;
+}
+
+.NonRewardBased {
+    margin-left: 35%;
+    width:15%;
+
+}
+.RewardBased {
+    width:15%;
+}
+.RewardBasedIcon{
+   float: right;
+}
+.DonateReward{
+    margin-left:73%;
+    width:100%;
+
+ }
