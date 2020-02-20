@@ -9,6 +9,7 @@ https://medium.com/openberry/creating-a-simple-crowdfunding-dapp-with-ethereum-s
 
 * **Node** - v10.x.x (preferrably v10.15.0 for long term support)
 * **npm** - v6.x.x (preferrably v6.6.0)
+* **MetamaskAccount** - Install metamask chrome extension.
 
 ## Running It Locally
 
@@ -24,6 +25,11 @@ Start the application in a development environment via:
 ```bash
 npm run serve
 ```
+Run Solidity Code in Remix Online Editor:
+
+* Create Solidity file in Remix Online Editor and paste the following solidity code which is in project folder
+* Compile and deploy it Online.
+* copy abi and deployed contract address,paste it in the code.
 
 ## Built With
 
