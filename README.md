@@ -15,7 +15,7 @@ https://medium.com/openberry/creating-a-simple-crowdfunding-dapp-with-ethereum-s
 Clone this repo via to your local machine and install the dependencies by doing the following:
 
 ```bash
-git clone 
+git clone https://github.com/Jayaram-p-7/Crowdfunding-using-Ethereum.git
 cd crowdfunding
 npm install
 ```
