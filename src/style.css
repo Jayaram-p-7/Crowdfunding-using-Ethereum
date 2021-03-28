@@ -10,6 +10,7 @@ body {
 .RewardBased {
     width:15%;
 }
+
 .RewardBasedIcon{
    float: right;
 }
@@ -18,3 +19,13 @@ body {
     width:100%;
 
  }
+.Updatemilestone{
+    margin-left:48.8%;
+    width:100%;
+}
+.CheckProgress {
+    float:right;
+}
+.MilestoneDialog {
+    float:right;
+}

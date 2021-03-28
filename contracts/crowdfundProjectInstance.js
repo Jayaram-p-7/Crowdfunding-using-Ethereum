@@ -1,7 +1,7 @@
 /* eslint-disable */
 import web3 from './web3';
 
-const abi =[
+const abi = [
 	{
 		"constant": true,
 		"inputs": [],
@@ -34,6 +34,25 @@ const abi =[
 		"constant": true,
 		"inputs": [],
 		"name": "donateBalance",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "indexes",
 		"outputs": [
 			{
 				"name": "",
@@ -85,6 +104,25 @@ const abi =[
 			{
 				"name": "",
 				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "contributors",
+		"outputs": [
+			{
+				"name": "",
+				"type": "address"
 			}
 		],
 		"payable": false,
@@ -146,6 +184,38 @@ const abi =[
 			{
 				"name": "",
 				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": false,
+		"inputs": [
+			{
+				"name": "val",
+				"type": "uint256"
+			},
+			{
+				"name": "dat",
+				"type": "uint256"
+			}
+		],
+		"name": "updateMilestone",
+		"outputs": [],
+		"payable": false,
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "getMilestones",
+		"outputs": [
+			{
+				"name": "arrmilestones",
+				"type": "uint256[]"
 			}
 		],
 		"payable": false,
@@ -220,6 +290,34 @@ const abi =[
 	{
 		"constant": true,
 		"inputs": [],
+		"name": "currentmilestone",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "milestonestatus",
+		"outputs": [
+			{
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
 		"name": "state",
 		"outputs": [
 			{
@@ -252,6 +350,39 @@ const abi =[
 		"outputs": [],
 		"payable": true,
 		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [],
+		"name": "orggoalammount",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"constant": true,
+		"inputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "listofmilestones",
+		"outputs": [
+			{
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"payable": false,
+		"stateMutability": "view",
 		"type": "function"
 	},
 	{
@@ -303,6 +434,18 @@ const abi =[
 			{
 				"name": "rewardstate",
 				"type": "bool"
+			},
+			{
+				"name": "contributers",
+				"type": "address[]"
+			},
+			{
+				"name": "milestonevalue",
+				"type": "uint256"
+			},
+			{
+				"name": "milestonestate",
+				"type": "bool"
 			}
 		],
 		"payable": false,
@@ -334,6 +477,10 @@ const abi =[
 			{
 				"name": "reward",
 				"type": "bool"
+			},
+			{
+				"name": "milestone",
+				"type": "uint256"
 			}
 		],
 		"payable": false,
@@ -375,7 +522,6 @@ const abi =[
 		"type": "event"
 	}
 ];
-
 export default (address) => {
   const instance = new web3.eth.Contract(abi, address);
   return instance;

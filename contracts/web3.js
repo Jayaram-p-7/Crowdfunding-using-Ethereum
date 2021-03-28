@@ -11,8 +11,8 @@ if (window.ethereum) {
   }
 } else if (window.web3){
   // Legacy dapp browsers...
-  window.web3 = new Web3(web3.currentProvider);
- // window.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+   window.web3 = new Web3(web3.currentProvider);
+ //window.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
   //web3.eth.defaultAccount = web3.eth.accounts[0];
 } else {
   // Non-dapp browsers...

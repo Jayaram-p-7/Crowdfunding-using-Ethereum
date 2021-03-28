@@ -1,11 +1,8 @@
 /* eslint-disable */
 import web3 from './web3';
+const address = '0x4BBB128780b3Da9FA0aE7e445D8F6852B3f3f1ff'; // Your deployed contract's address goes here
 
-const address = '0x98EEA366dDbd75e7b8164cE18082Ab69478BE9Be'; // Your deployed contract's address goes here
-// Example:
-// const address = '0x09r80cnasjfaks93m9v2';
-
-const abi =[
+const abi = [
 	{
 		"constant": true,
 		"inputs": [],
@@ -42,6 +39,10 @@ const abi =[
 			{
 				"name": "reward",
 				"type": "bool"
+			},
+			{
+				"name": "milestone",
+				"type": "uint256"
 			}
 		],
 		"name": "startProject",
@@ -87,13 +88,17 @@ const abi =[
 				"indexed": false,
 				"name": "reward",
 				"type": "bool"
+			},
+			{
+				"indexed": false,
+				"name": "milestone",
+				"type": "uint256"
 			}
 		],
 		"name": "ProjectStarted",
 		"type": "event"
 	}
 ];
-
 const instance = new web3.eth.Contract(abi, address);
 
 export default instance;

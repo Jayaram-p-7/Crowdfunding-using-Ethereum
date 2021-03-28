@@ -35,7 +35,7 @@
                         v-model="newProject.description"
                       ></v-textarea>
                     </v-flex>
-                    <v-flex xs12 sm6>
+                    <v-flex xs12>
                       <v-text-field
                         label="Amount Needed (ETH)"
                         type="number"
@@ -46,13 +46,22 @@
                     </v-flex>
                     <v-flex xs12 sm6>
                       <v-text-field
-                        label="Duration (in days)"
+                        label="Milestone Amount (ETH)"
+                        type="number"
+                        step="0.0001"
+                        min="0"
+                        v-model="newProject.milestone"
+                      ></v-text-field>
+                    </v-flex>
+                    <v-flex xs12 sm6>
+                      <v-text-field
+                        label="Duration (in days) for Milestone"
                         type="number"
                         v-model="newProject.duration"
                       ></v-text-field>
                     </v-flex>
                     <v-flex>
-                      <v-checkbox v-model="newProject.reward" color="success" label="Reward Based"></v-checkbox>
+                      <v-checkbox v-model="newProject.reward" color="success" label="Equity Based"></v-checkbox>
                     </v-flex>
                   </v-layout>
                 </v-container>
@@ -78,28 +87,36 @@
       </v-container>
 
       <v-container grid-list-lg>
-        <div class="container">
+        <div class="container" v-if="toggle_value==false">
           <v-btn
             color="primary"
             text-color="white"
             class="NonRewardBased"
             @click="toggle_value=false"
-          >Non Reward Based</v-btn>
-          <v-btn
-            color="primary"
-            text-color="white"
-            class="RewardBased"
-            @click="toggle_value=true"
-          >Reward Based</v-btn>
+          >Other Projects</v-btn>
+          <v-btn class="RewardBased" @click="toggle_value=true">My Projects</v-btn>
         </div>
-
+        <div class="container" v-if="toggle_value==true">
+          <v-btn
+            class="NonRewardBased"
+            @click="toggle_value=false"
+          >Other Projects</v-btn>
+          <v-btn color="primary"
+            text-color="white"
+            class="RewardBased" 
+            @click="toggle_value=true">
+            My Projects</v-btn>
+        </div>
         <h1 class="display-1 font-weight-bold mb-3">Projects</h1>
         <v-layout row wrap>
           <v-flex v-for="(project, index) in projectData" :key="index" xs12>
             <v-dialog v-model="project.dialog" width="800">
               <v-card>
                 <v-card-title class="headline font-weight-bold">{{ project.projectTitle }}</v-card-title>
-                <v-card-text>{{ project.projectDesc }}</v-card-text>
+                <v-card-text>
+                  <b>Description :</b>
+                  {{ project.projectDesc }}
+                </v-card-text>
                 <v-card-actions>
                   <v-spacer></v-spacer>
                   <v-btn
@@ -110,9 +127,10 @@
                 </v-card-actions>
               </v-card>
             </v-dialog>
+
             <v-hover>
               <v-card
-                v-if="project.reward==toggle_value"
+                v-if="toggle_value ? account==project.projectStarter:account!=project.projectStarter "
                 slot-scope="{ hover }"
                 :class="`elevation-${hover ? 10 : 2}`"
               >
@@ -126,6 +144,55 @@
                         class="mt-0"
                       >{{ stateMap[project.currentState].text }}</v-chip>
                       {{ project.projectTitle }}
+                      <v-dialog
+                        class="MilestoneDialog"
+                        v-model="project.startMilestoneDialog"
+                        max-width="600px"
+                        persistent
+                      >
+                        <v-btn slot="activator" color="primary" dark>
+                          <v-icon>event_note</v-icon>
+                        </v-btn>
+                        <v-card>
+                          <v-card-title class="headline font-weight-bold">List of Milestones</v-card-title>
+                          <v-flex v-for="(val, ind) in projectMilestoneData[index]" :key="ind" xs12>
+                            <v-flex style="margin-left:10%;">
+                              <v-card-text
+                                v-if="ind==projectMilestoneData[index].length-1 && project.milestonestate && project.currentState==0"
+                              >
+                                Milestone {{ind+1}} : {{val/ 10**18}} ETH
+                                <v-icon style="margin-left:30%;color:orange" large>fast_forward</v-icon>
+                              </v-card-text>
+                              <v-card-text
+                                v-else-if="ind==projectMilestoneData[index].length-1  && project.currentState==1"
+                              >
+                                Milestone {{ind+1}} : {{val/ 10**18}} ETH
+                                <v-icon style="margin-left:30%;color:red" large>block</v-icon>
+                              </v-card-text>
+                              <v-card-text v-else>
+                                Milestone {{ind+1}} : {{val/ 10**18}} ETH
+                                <v-icon style="margin-left:30%;color:green" large>check_circle</v-icon>
+                              </v-card-text>
+                            </v-flex>
+                          </v-flex>
+                          <v-card-actions>
+                            <v-spacer></v-spacer>
+                            <v-btn
+                              color="blue darken-1"
+                              flat="flat"
+                              @click="project.startMilestoneDialog = false"
+                            >Close</v-btn>
+                          </v-card-actions>
+                        </v-card>
+                      </v-dialog>
+                      <v-btn
+                        class="CheckProgress"
+                        v-if="project.currentState==0 && account==project.projectStarter"
+                        color="primary"
+                        dark
+                        @click="checkProgress(index)"
+                        :loading="project.isLoading"
+                      >Check Progress</v-btn>
                       <v-chip
                         v-if="project.reward"
                         color="success"
@@ -134,29 +201,37 @@
                       >
                         <v-avatar left>
                           <v-icon>info</v-icon>
-                        </v-avatar>Reward Based
+                        </v-avatar>Equity Based
+                      </v-chip>
+                      <v-chip v-else color="success" text-color="white" class="RewardBasedIcon">
+                        <v-avatar left>
+                          <v-icon>info</v-icon>
+                        </v-avatar>Donation Based
                       </v-chip>
                     </div>
                     <br />
-                    <span>{{ project.projectDesc.substring(0, 100) }}</span>
+                    <span>
+                      <b>Description :</b>
+                      {{ project.projectDesc.substring(0, 100) }}
+                    </span>
                     <span v-if="project.projectDesc.length > 100">
                       ...
                       <a @click="projectData[index].dialog = true">[Show full]</a>
                     </span>
                     <br />
                     <br />
-                    <small>
-                      Up Until:
-                      <b>{{ new Date(project.deadline * 1000) }}</b>
-                    </small>
-                    <br />
-                    <br />
-                    <small>
-                      Goal of
+                    <span>
+                      <b>To Raise :</b>
                       <b>{{ project.goalAmount / 10**18 }} ETH</b>
-                    </small>
-                    <small v-if="project.currentState == 1"> wasn't achieved before deadline</small>
-                    <small v-if="project.currentState == 2"> has been achieved</small>
+                    </span>
+                    <span v-if="project.currentState == 1">wasn't achieved before deadline</span>
+                    <span v-if="project.currentState == 2">has been achieved</span>
+                    <br />
+                    <br />
+                    <span v-if="!project.milestonestate">
+                      <b>Deadline :</b>
+                      <b>{{ new Date(project.deadline * 1000) }}</b>
+                    </span>
                   </div>
                 </v-card-title>
                 <v-flex
@@ -174,13 +249,62 @@
                     v-model="project.fundAmount"
                   ></v-text-field>
                   <v-btn
-                    class="mt-3"
-                    color="light-blue darken-1 white--text"
+                    dark
+                    color="primary"
                     @click="fundProject(index)"
                     :loading="project.isLoading"
                   >Fund</v-btn>
                 </v-flex>
+                <div class="Updatemilestone">
+                  <v-flex
+                    v-if="project.currentState==0 && account == project.projectStarter && !project.milestonestate"
+                    class="d-flex ml-3"
+                    xs12
+                    sm6
+                  >
+                    <v-flex>
+                      <v-text-field
+                        label="Milestone Amount (in ETH)"
+                        type="number"
+                        step="0.0001"
+                        min="0"
+                        v-model="project.milestoneAmount"
+                      ></v-text-field>
+                    </v-flex>
+                    <v-flex>
+                      <v-text-field
+                        label="Duration (in days) for Milestone"
+                        type="number"
+                        v-model="project.period"
+                      ></v-text-field>
+                    </v-flex>
+                    <v-flex xs12 sm6>
+                      <v-btn
+                        dark
+                        color="primary"
+                        @click="updateMilestones(index)"
+                        :loading="project.milestoneloading"
+                      >Update Milestone</v-btn>
+                    </v-flex>
+                  </v-flex>
+                </div>
+                <v-flex
+                  v-if="project.milestonestate && project.currentState==0"
+                  class="d-flex ml-3"
+                  xs12
+                >
+                  <v-flex v-if="!project.milestonestate" sm6>
+                    <b>Milestone is has been set.Look for the list of Milestones in top right corner.</b>
+                  </v-flex>
+                  <v-flex sm6>
+                    <b>Milestone {{projectMilestoneData[index].length}} is InProgress</b>
+                  </v-flex>
+                  <v-flex sm6>
+                    <b>Deadline:</b>
 
+                    {{ new Date(project.deadline * 1000) }}
+                  </v-flex>
+                </v-flex>
                 <v-card-actions v-if="project.currentState == 0" class="text-xs-center">
                   <span
                     class="font-weight-bold"
@@ -189,25 +313,25 @@
                   <v-progress-linear
                     height="10"
                     :color="stateMap[project.currentState].color"
-                    :value="(project.currentAmount / project.goalAmount) * 100"
+                    :value="(project.currentAmount / project.milestonevalue) * 100"
                   ></v-progress-linear>
                   <span
                     class="font-weight-bold"
                     style="width: 200px;"
-                  >{{ project.goalAmount / 10**18 }} ETH</span>
+                  >{{ project.milestonevalue / 10**18 }} ETH</span>
                 </v-card-actions>
                 <div class="DonateReward">
                   <v-flex class="d-flex ml-3" xs12 sm6 md3>
                     <v-btn
-                      class="mt-3"
-                      color="amber darken-1 white--text"
-                      v-if="project.currentState == 1 && project.reward==toggle_value && account != project.projectStarter"
+                      dark
+                      color="primary"
+                      v-if="project.currentState == 1 && project.contributers.includes(account) && project.reward==true && account != project.projectStarter"
                       @click="getRefund(index)"
                       :loading="project.isLoading"
                     >Get refund</v-btn>
                   </v-flex>
                   <v-flex
-                    v-if="project.currentState == 2 && project.reward==toggle_value && project.rewardstate && account != project.projectStarter"
+                    v-if="project.currentState == 2 && project.contributers.includes(account) && project.reward==true && project.rewardstate && account != project.projectStarter"
                     v-flex
                     class="d-flex ml-3"
                     xs12
@@ -215,21 +339,25 @@
                     md3
                   >
                     <v-btn
-                      class="mt-3"
-                      color="light-blue darken-1 white--text"
+                      dark
+                      color="primary"
                       @click="getReward(index)"
                       :loading="project.isLoading"
                     >Get Reward</v-btn>
                   </v-flex>
                   <v-flex
-                    v-if="project.currentState == 2 && project.reward==toggle_value && account == project.projectStarter"
+                    v-if="project.currentState == 2 && project.reward==true && account == project.projectStarter"
                     v-flex
                     class="d-flex ml-3"
                     xs12
                     sm6
                     md3
                   >
-                   <h3  v-if="project.rewardstate" style="color:green" class="ml-5">Reward Donated!!!</h3> 
+                    <h3
+                      v-if="project.rewardstate"
+                      style="color:green"
+                      class="ml-5"
+                    >Reward Donated!!!</h3>
                     <v-text-field
                       v-if="!project.rewardstate"
                       label="Amount (in ETH)"
@@ -240,8 +368,8 @@
                     ></v-text-field>
                     <v-btn
                       v-if="!project.rewardstate"
-                      class="mt-3"
-                      color="light-blue darken-1 white--text"
+                      dark
+                      color="primary"
                       @click="rewardProject(index)"
                       :loading="project.isLoading"
                     >Reward</v-btn>
@@ -272,15 +400,20 @@ export default {
       stateMap: [
         { color: "primary", text: "Ongoing" },
         { color: "warning", text: "Expired" },
-        { color: "success", text: "Completed" }
+        { color: "success", text: "Completed" },
       ],
       projectData: [],
-      newProject: { isLoading: false }
+      projectMilestoneData: [],
+      newProject: {
+        isLoading: false,
+        milestoneloading: false,
+        startMilestoneDialog: false,
+      },
     };
   },
   mounted() {
     // this code snippet takes the account (wallet) that is currently active
-    web3.eth.getAccounts().then(accounts => {
+    web3.eth.getAccounts().then((accounts) => {
       [this.account] = accounts;
       this.getProjects();
     });
@@ -290,21 +423,32 @@ export default {
       crowdfundInstance.methods
         .returnAllProjects()
         .call()
-        .then(projects => {
-          projects.forEach(projectAddress => {
+        .then((projects) => {
+          projects.forEach((projectAddress) => {
             const projectInst = crowdfundProject(projectAddress);
             projectInst.methods
               .getDetails()
               .call()
-              .then(projectData => {
+              .then((projectData) => {
                 const projectInfo = projectData;
                 projectInfo.isLoading = false;
+                projectInfo.milestoneloading = false;
+                projectInfo.startMilestoneDialog = false;
+                console.log(projectInfo.contributers);
                 projectInfo.contract = projectInst;
                 this.projectData.push(projectInfo);
+              });
+            projectInst.methods
+              .getMilestones()
+              .call()
+              .then((data) => {
+                const info = data;
+                this.projectMilestoneData.push(info);
               });
           });
         });
     },
+
     startProject() {
       this.newProject.isLoading = true;
       crowdfundInstance.methods
@@ -313,19 +457,27 @@ export default {
           this.newProject.description,
           this.newProject.duration,
           web3.utils.toWei(this.newProject.amountGoal, "ether"),
-          this.newProject.reward
+          this.newProject.reward,
+          web3.utils.toWei(this.newProject.milestone, "ether")
         )
         .send({
-          from: this.account
+          from: this.account,
         })
-        .then(res => {
+        .then((res) => {
           const projectInfo = res.events.ProjectStarted.returnValues;
           projectInfo.isLoading = false;
+          projectInfo.milestoneloading = false;
+          projectInfo.startMilestoneDialog = false;
           projectInfo.currentAmount = 0;
           projectInfo.currentState = 0;
           projectInfo.contract = crowdfundProject(projectInfo.contractAddress);
           this.startProjectDialog = false;
-          this.newProject = { isLoading: false };
+          this.newProject = {
+            isLoading: false,
+            milestoneloading: false,
+            startMilestoneDialog: false,
+          };
+          location.reload(true);
         });
     },
 
@@ -340,9 +492,10 @@ export default {
         .contribute()
         .send({
           from: this.account,
-          value: web3.utils.toWei(this.projectData[index].fundAmount, "ether")
+          value: web3.utils.toWei(this.projectData[index].fundAmount, "ether"),
+          gas:1000000
         })
-        .then(res => {
+        .then((res) => {
           const newTotal = parseInt(
             res.events.FundingReceived.returnValues.currentTotal,
             10
@@ -355,6 +508,7 @@ export default {
           if (newTotal >= projectGoal) {
             this.projectData[index].currentState = 2;
           }
+          location.reload(true);
         });
     },
 
@@ -369,10 +523,15 @@ export default {
         .donate()
         .send({
           from: this.account,
-          value: web3.utils.toWei(this.projectData[index].rewardAmount, "ether")
+          value: web3.utils.toWei(
+            this.projectData[index].rewardAmount,
+            "ether"
+          ),
+          gas:1000000
         })
-        .then(res => {
+        .then((res) => {
           this.projectData[index].isLoading = false;
+          location.reload(true);
         });
     },
 
@@ -381,10 +540,11 @@ export default {
       this.projectData[index].contract.methods
         .getRefund()
         .send({
-          from: this.account
+          from: this.account,
         })
         .then(() => {
           this.projectData[index].isLoading = false;
+          location.reload(true);
         });
     },
 
@@ -393,12 +553,46 @@ export default {
       this.projectData[index].contract.methods
         .getReward()
         .send({
-          from: this.account
+          from: this.account,
+          gas:1000000
+          })
+        .then(() => {
+          this.projectData[index].isLoading = false;
+          location.reload(true);
+        });
+    },
+
+    checkProgress(index) {
+      this.projectData[index].isLoading = true;
+      this.projectData[index].contract.methods
+        .checkIfFundingCompleteOrExpired()
+        .send({
+          from: this.account,
         })
         .then(() => {
           this.projectData[index].isLoading = false;
+          location.reload(true);
         });
-    }
-  }
+    },
+
+    updateMilestones(index) {
+      if (!this.projectData[index].milestoneAmount) {
+        return;
+      }
+      this.projectData[index].milestoneloading = true;
+      this.projectData[index].contract.methods
+        .updateMilestone(
+          web3.utils.toWei(this.projectData[index].milestoneAmount, "ether"),
+          this.projectData[index].period
+        )
+        .send({
+          from: this.account,
+        })
+        .then(() => {
+          this.projectData[index].milestoneloading = false;
+          location.reload(true);
+        });
+    },
+  },
 };
 </script>
